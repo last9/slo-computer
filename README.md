@@ -1,5 +1,5 @@
 # slo-computer
-SLOs, Error windows and alerts are complicated. Here an attempt to make it easy
+SLOs, Error windows and alerts are complicated. Here's an attempt to make it easy
 
 SLO, burn_rate, error_rate, budget_spend are convoluted terms that can throw one off.
 Even the SRE workbook by Google can leave you with a lot of open questions.
