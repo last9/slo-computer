@@ -1,269 +1,153 @@
 package slo
 
 import (
-	"github.com/pkg/errors"
+	"embed"
+	"encoding/json"
+	"log"
 	"math"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
+//go:embed aws_instances.json
+var instanceTypesFile embed.FS
+
 // Information about all instance types that support burst CPU performance
-var InstanceTypes = map[string]EC2Instance{
-	"t2.nano": {
-		CreditRate:          3,
-		MaxCredits:          72,
-		VCPUs:               1,
-		BaselineUtilization: 5,
-	},
-	"t2.micro": {
-		CreditRate:          6,
-		MaxCredits:          144,
-		VCPUs:               1,
-		BaselineUtilization: 10,
-	},
-	"t2.small": {
-		CreditRate:          12,
-		MaxCredits:          288,
-		VCPUs:               1,
-		BaselineUtilization: 20,
-	},
-	"t2.medium": {
-		CreditRate:          24,
-		MaxCredits:          576,
-		VCPUs:               2,
-		BaselineUtilization: 20,
-	},
-	"t2.large": {
-		CreditRate:          36,
-		MaxCredits:          864,
-		VCPUs:               2,
-		BaselineUtilization: 30,
-	},
-	"t2.xlarge": {
-		CreditRate:          54,
-		MaxCredits:          1296,
-		VCPUs:               4,
-		BaselineUtilization: 22.5,
-	},
-	"t2.2xlarge": {
-		CreditRate:          81.6,
-		MaxCredits:          1958.4,
-		VCPUs:               8,
-		BaselineUtilization: 17,
-	},
-	"t3.nano": {
-		CreditRate:          6,
-		MaxCredits:          144,
-		VCPUs:               2,
-		BaselineUtilization: 5,
-	},
-	"t3.micro": {
-		CreditRate:          12,
-		MaxCredits:          288,
-		VCPUs:               2,
-		BaselineUtilization: 10,
-	},
-	"t3.small": {
-		CreditRate:          24,
-		MaxCredits:          576,
-		VCPUs:               2,
-		BaselineUtilization: 20,
-	},
-	"t3.medium": {
-		CreditRate:          24,
-		MaxCredits:          576,
-		VCPUs:               2,
-		BaselineUtilization: 20,
-	},
-	"t3.large": {
-		CreditRate:          36,
-		MaxCredits:          864,
-		VCPUs:               2,
-		BaselineUtilization: 30,
-	},
-	"t3.xlarge": {
-		CreditRate:          96,
-		MaxCredits:          2304,
-		VCPUs:               4,
-		BaselineUtilization: 40,
-	},
-	"t3.2xlarge": {
-		CreditRate:          192,
-		MaxCredits:          4608,
-		VCPUs:               8,
-		BaselineUtilization: 40,
-	},
-	"t3a.nano": {
-		CreditRate:          6,
-		MaxCredits:          144,
-		VCPUs:               2,
-		BaselineUtilization: 5,
-	},
-	"t3a.micro": {
-		CreditRate:          12,
-		MaxCredits:          288,
-		VCPUs:               2,
-		BaselineUtilization: 10,
-	},
-	"t3a.small": {
-		CreditRate:          24,
-		MaxCredits:          576,
-		VCPUs:               2,
-		BaselineUtilization: 20,
-	},
-	"t3a.medium": {
-		CreditRate:          24,
-		MaxCredits:          576,
-		VCPUs:               2,
-		BaselineUtilization: 20,
-	},
-	"t3a.large": {
-		CreditRate:          36,
-		MaxCredits:          864,
-		VCPUs:               2,
-		BaselineUtilization: 30,
-	},
-	"t3a.xlarge": {
-		CreditRate:          96,
-		MaxCredits:          2304,
-		VCPUs:               4,
-		BaselineUtilization: 40,
-	},
-	"t3a.2xlarge": {
-		CreditRate:          192,
-		MaxCredits:          4608,
-		VCPUs:               8,
-		BaselineUtilization: 40,
-	},
-	"t4g.nano": {
-		CreditRate:          6,
-		MaxCredits:          144,
-		VCPUs:               2,
-		BaselineUtilization: 5,
-	},
-	"t4g.micro": {
-		CreditRate:          12,
-		MaxCredits:          288,
-		VCPUs:               2,
-		BaselineUtilization: 10,
-	},
-	"t4g.small": {
-		CreditRate:          24,
-		MaxCredits:          576,
-		VCPUs:               2,
-		BaselineUtilization: 20,
-	},
-	"t4g.medium": {
-		CreditRate:          24,
-		MaxCredits:          576,
-		VCPUs:               2,
-		BaselineUtilization: 20,
-	},
-	"t4g.large": {
-		CreditRate:          36,
-		MaxCredits:          864,
-		VCPUs:               2,
-		BaselineUtilization: 30,
-	},
-	"t4g.xlarge": {
-		CreditRate:          96,
-		MaxCredits:          2304,
-		VCPUs:               4,
-		BaselineUtilization: 40,
-	},
-	"t4g.2xlarge": {
-		CreditRate:          192,
-		MaxCredits:          4608,
-		VCPUs:               8,
-		BaselineUtilization: 40,
-	},
+var instanceTypes = map[string]*ComputeCapactiy{}
+
+func init() {
+	b, err := instanceTypesFile.ReadFile("aws_instances.json")
+	if err != nil {
+		panic(err)
+		return
+	}
+
+	if err := json.Unmarshal(b, &instanceTypes); err != nil {
+		panic(err)
+	}
 }
 
-type EC2Instance struct {
+func Instances() []string {
+	var arr []string
+
+	for a, _ := range instanceTypes {
+		arr = append(arr, a)
+	}
+
+	return arr
+}
+
+func InstanceCapacity(flavor string) *ComputeCapactiy {
+	c, ok := instanceTypes[flavor]
+	if !ok {
+		return nil
+	}
+
+	return c
+}
+
+type ComputeCapactiy struct {
 	CreditRate          float64
 	MaxCredits          float64
-	VCPUs               int
+	VCPUs               float64
 	BaselineUtilization float64
 }
 
 type BurstCPU struct {
-	Instance          EC2Instance
+	Capacity    *ComputeCapactiy
 	Utilisation float64
-	Duration time.Duration
 }
 
 type BurstWindow struct {
-	Name          string
-	Utilisation     float64
+	Name           string
+	Utilisation    float64
 	CreditBurnRate float64
-	TimeToExhaust time.Duration
-	ShortWindow   time.Duration
-	LongWindow    time.Duration
+	TimeToExhaust  time.Duration
+	ShortWindow    time.Duration
+	LongWindow     time.Duration
 }
 
 func (b *BurstWindow) timeToExhaust(c *BurstCPU, utilisation float64, window time.Duration) (time.Duration, error) {
-	credits := c.Instance.MaxCredits
+	credits := c.Capacity.MaxCredits
 	debitRate := b.creditsBurnRate(c, utilisation, window)
 
-	if debitRate < c.Instance.CreditRate {
+	if debitRate < c.Capacity.CreditRate {
 		return time.Duration(math.Inf(1)), errors.New("The instance will never run out of credits since it is underutilised.")
 	}
 
-	return  time.Duration((credits / debitRate) * dToFS(time.Hour)), nil
+	return time.Duration((credits / debitRate) * dToFS(time.Hour)), nil
 }
 
 func (b *BurstWindow) creditsBurnRate(c *BurstCPU, utilisation float64, window time.Duration) float64 {
-	creditsBurned := utilisation * float64(c.Instance.VCPUs) * (dToFS(window)/dToFS(time.Minute))
-	return creditsBurned / (dToFS(window)/dToFS(time.Hour))
+	creditsBurned := utilisation * float64(c.Capacity.VCPUs) * (dToFS(window) / dToFS(time.Minute))
+	return creditsBurned / (dToFS(window) / dToFS(time.Hour))
 }
 
-func NewBurstCPU(instance string, utilisation float64, duration time.Duration) (*BurstCPU, error){
-	if _, ok := InstanceTypes[instance]; !ok {
-		return nil, errors.New("Unknown instance type")
-	}
-
+func NewBurstCPU(cc *ComputeCapactiy, used float64) (*BurstCPU, error) {
 	return &BurstCPU{
-		Instance:    InstanceTypes[instance],
-		Utilisation: utilisation,
-		Duration: duration,
-
+		Capacity:    cc,
+		Utilisation: used,
 	}, nil
 }
 
-func NewBurstWindow(
-	c *BurstCPU, name string, utilisation float64, window time.Duration,
-) *BurstWindow {
-	a := BurstWindow{
-		Name: name,
-		Utilisation: utilisation,
-		ShortWindow: maxD(window/12, 2*time.Minute),
-		LongWindow:  window,
-	}
-
-	a.CreditBurnRate = a.creditsBurnRate(c, utilisation, window)
-	a.TimeToExhaust, err := a.timeToExhaust(c, utilisation, window)
-	return &a
+type burstAlert struct {
 }
 
-func BurstCalculator(b *BurstCPU) []*BurstWindow {
-	// Types of CPU burst alerts
-	out := make([]*BurstWindow, 2)
+func (b *burstAlert) String() string {
+	return "burst alert"
+}
 
-	// A short term burst in CPU can be characterized as double
-	//the baseline utilisation for the instance
-	fastUtilisationRate := b.Instance.BaselineUtilization * 2
+const float64EqualityThreshold = 0.005
 
-	// A small increase in CPU usage can be characterized as the
-	//usage being 20% above the baseline
-	slowUtilisationRate := b.Instance.BaselineUtilization * 1.2
+func almostEqual(a, b float64) bool {
+	return math.Abs(a-b) <= float64EqualityThreshold
+}
 
-	var slowDuration time.Duration
-	if b.Duration > aDay { // Duration is an order of a day
-		slowDuration = aDay
-	} else { // Duration is an order of hours
-		slowDuration = minD(6*time.Hour, b.Duration/2)
+func newBurstAlert(b *BurstCPU, name string, utilization float64) Alerter {
+	carry := b.Capacity.MaxCredits - (24 * 60 * (b.Utilisation / 100.0) * b.Capacity.VCPUs)
+	nMax := 24.0
+	// (b.Capacity.MaxCredits - math.Max(carry, 0.0)) / b.Capacity.CreditRate
+	nMin := math.Max(carry, 0.0) / (b.Capacity.VCPUs - (b.Capacity.CreditRate / 60))
+
+	baseline := (b.Capacity.CreditRate * 100.0 / float64(b.Capacity.VCPUs)) / 60
+
+	var cur float64
+	for i := nMin; i <= nMax*60.0; i += 5 {
+		u := ((carry + ((b.Capacity.CreditRate / 60) * i)) / (i * b.Capacity.VCPUs)) * 100
+		if math.IsNaN(u) {
+			continue
+		}
+
+		if almostEqual(cur, u) || u < 0 {
+			break
+		}
+
+		if !almostEqual(u, 100) && !almostEqual(u, baseline*1.2) && !almostEqual(u, baseline*2) {
+			continue
+		}
+
+		cur = u
+		log.Println("utilization", u, "after minutes", i)
 	}
 
-	fastDuration := maxD(slowDuration/24, 30*time.Minute)
+	return &burstAlert{}
+}
+
+func BurstCalculator(b *BurstCPU) []Alerter {
+	// Types of CPU burst alerts
+	out := make([]Alerter, 2)
+
+	// net-0 baseline per vcpu
+	baseline := (b.Capacity.CreditRate * 100.0 / float64(b.Capacity.VCPUs)) / 60
+
+	// A good starting point for a fast-burn threshold policy is 10x the
+	// baseline with a short lookback period.
+	// fastUtilization := math.Min(baseline*2, 100.0)
+
+	// A good starting point for a slow-burn threshold is 2x the baseline with
+	// a long lookback period.
+	slowUtilization := math.Min(baseline*1.2, 100.0)
 
 	// Slow-burn alert, which warns you of a rate of consumption that, if not
 	// altered, exhausts your error budget before the end of the compliance
@@ -278,7 +162,7 @@ func BurstCalculator(b *BurstCPU) []*BurstWindow {
 	// generate too many alerts, even if the longer-term consumption levels
 	// out. But if the consumption stays even a little too high for a longer
 	// period, it eventually consumes all of your error budget.
-	out[0] = NewAlertWindow(s, "slow", slowErrorRate, slowDuration)
+	out[0] = newBurstAlert(b, "slow", slowUtilization)
 
 	// When setting up alerting policies to monitor your error budget, it's a
 	// good idea to set up two related alerting policies:
@@ -290,7 +174,7 @@ func BurstCalculator(b *BurstCPU) []*BurstWindow {
 	// quickly if a potentially disastrous condition has emerged and persisted,
 	// even briefly. If it is truly disastrous, you don't want to wait long to
 	// notice it.
-	out[1] = NewAlertWindow(s, "fast", fastErrorRate, fastDuration)
+	// out[1] = newBurstAlert(b, "fast", fastUtilization)
 
 	return out
 }

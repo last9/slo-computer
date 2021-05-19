@@ -107,6 +107,10 @@ type Impact struct {
 	BreaksAfter time.Duration
 }
 
+type Alerter interface {
+	String() string
+}
+
 type AlertWindow struct {
 	Name          string
 	ErrorRate     float64
@@ -131,7 +135,7 @@ func (a *AlertWindow) String() string {
 
 func NewAlertWindow(
 	slo *SLO, name string, errorRate float64, window time.Duration,
-) *AlertWindow {
+) Alerter {
 	a := AlertWindow{
 		Name: name, ErrorRate: errorRate,
 		ShortWindow: maxD(window/12, 2*time.Minute),
@@ -144,9 +148,9 @@ func NewAlertWindow(
 	return &a
 }
 
-func AlertCalculator(s *SLO) []*AlertWindow {
+func AlertCalculator(s *SLO) []Alerter {
 	// Types of error-budget alerts
-	out := make([]*AlertWindow, 2)
+	out := make([]Alerter, 2)
 
 	// A good starting point for a fast-burn threshold policy is 10x the
 	// baseline with a short (1- or 2-hour) lookback period.

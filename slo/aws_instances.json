@@ -1,0 +1,142 @@
+{
+  "t2.nano": {
+    "CreditRate": 3,
+    "MaxCredits": 72,
+    "VCPUs": 1
+  },
+  "t2.micro": {
+    "CreditRate": 6,
+    "MaxCredits": 144,
+    "VCPUs": 1
+  },
+  "t2.small": {
+    "CreditRate": 12,
+    "MaxCredits": 288,
+    "VCPUs": 1
+  },
+  "t2.medium": {
+    "CreditRate": 24,
+    "MaxCredits": 576,
+    "VCPUs": 2
+  },
+  "t2.large": {
+    "CreditRate": 36,
+    "MaxCredits": 864,
+    "VCPUs": 2
+  },
+  "t2.xlarge": {
+    "CreditRate": 54,
+    "MaxCredits": 1296,
+    "VCPUs": 4
+  },
+  "t2.2xlarge": {
+    "CreditRate": 81.6,
+    "MaxCredits": 1958.4,
+    "VCPUs": 8
+  },
+  "t3.nano": {
+    "CreditRate": 6,
+    "MaxCredits": 144,
+    "VCPUs": 2
+  },
+  "t3.micro": {
+    "CreditRate": 12,
+    "MaxCredits": 288,
+    "VCPUs": 2
+  },
+  "t3.small": {
+    "CreditRate": 24,
+    "MaxCredits": 576,
+    "VCPUs": 2
+  },
+  "t3.medium": {
+    "CreditRate": 24,
+    "MaxCredits": 576,
+    "VCPUs": 2
+  },
+  "t3.large": {
+    "CreditRate": 36,
+    "MaxCredits": 864,
+    "VCPUs": 2
+  },
+  "t3.xlarge": {
+    "CreditRate": 96,
+    "MaxCredits": 2304,
+    "VCPUs": 4
+  },
+  "t3.2xlarge": {
+    "CreditRate": 192,
+    "MaxCredits": 4608,
+    "VCPUs": 8
+  },
+  "t3a.nano": {
+    "CreditRate": 6,
+    "MaxCredits": 144,
+    "VCPUs": 2
+  },
+  "t3a.micro": {
+    "CreditRate": 12,
+    "MaxCredits": 288,
+    "VCPUs": 2
+  },
+  "t3a.small": {
+    "CreditRate": 24,
+    "MaxCredits": 576,
+    "VCPUs": 2
+  },
+  "t3a.medium": {
+    "CreditRate": 24,
+    "MaxCredits": 576,
+    "VCPUs": 2
+  },
+  "t3a.large": {
+    "CreditRate": 36,
+    "MaxCredits": 864,
+    "VCPUs": 2
+  },
+  "t3a.xlarge": {
+    "CreditRate": 96,
+    "MaxCredits": 2304,
+    "VCPUs": 4
+  },
+  "t3a.2xlarge": {
+    "CreditRate": 192,
+    "MaxCredits": 4608,
+    "VCPUs": 8
+  },
+  "t4g.nano": {
+    "CreditRate": 6,
+    "MaxCredits": 144,
+    "VCPUs": 2
+  },
+  "t4g.micro": {
+    "CreditRate": 12,
+    "MaxCredits": 288,
+    "VCPUs": 2
+  },
+  "t4g.small": {
+    "CreditRate": 24,
+    "MaxCredits": 576,
+    "VCPUs": 2
+  },
+  "t4g.medium": {
+    "CreditRate": 24,
+    "MaxCredits": 576,
+    "VCPUs": 2
+  },
+  "t4g.large": {
+    "CreditRate": 36,
+    "MaxCredits": 864,
+    "VCPUs": 2
+  },
+  "t4g.xlarge": {
+    "CreditRate": 96,
+    "MaxCredits": 2304,
+    "VCPUs": 4
+  },
+  "t4g.2xlarge": {
+    "CreditRate": 192,
+    "MaxCredits": 4608,
+    "VCPUs": 8
+  }
+}
