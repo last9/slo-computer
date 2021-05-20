@@ -3,11 +3,9 @@ package slo
 import (
 	"embed"
 	"encoding/json"
-	"log"
+	"fmt"
 	"math"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 //go:embed aws_instances.json
@@ -59,31 +57,6 @@ type BurstCPU struct {
 	Utilisation float64
 }
 
-type BurstWindow struct {
-	Name           string
-	Utilisation    float64
-	CreditBurnRate float64
-	TimeToExhaust  time.Duration
-	ShortWindow    time.Duration
-	LongWindow     time.Duration
-}
-
-func (b *BurstWindow) timeToExhaust(c *BurstCPU, utilisation float64, window time.Duration) (time.Duration, error) {
-	credits := c.Capacity.MaxCredits
-	debitRate := b.creditsBurnRate(c, utilisation, window)
-
-	if debitRate < c.Capacity.CreditRate {
-		return time.Duration(math.Inf(1)), errors.New("The instance will never run out of credits since it is underutilised.")
-	}
-
-	return time.Duration((credits / debitRate) * dToFS(time.Hour)), nil
-}
-
-func (b *BurstWindow) creditsBurnRate(c *BurstCPU, utilisation float64, window time.Duration) float64 {
-	creditsBurned := utilisation * float64(c.Capacity.VCPUs) * (dToFS(window) / dToFS(time.Minute))
-	return creditsBurned / (dToFS(window) / dToFS(time.Hour))
-}
-
 func NewBurstCPU(cc *ComputeCapactiy, used float64) (*BurstCPU, error) {
 	return &BurstCPU{
 		Capacity:    cc,
@@ -92,29 +65,47 @@ func NewBurstCPU(cc *ComputeCapactiy, used float64) (*BurstCPU, error) {
 }
 
 type burstAlert struct {
+	utilization  float64
+	exhaustAfter time.Duration
+	alertAfter   time.Duration
 }
 
 func (b *burstAlert) String() string {
-	return "burst alert"
+	return fmt.Sprintf(
+		`
+	Alert if %.2f %% consumption sustains for %s AND recent %s.
+	At this rate, burst credits will deplete after %s
+	`,
+		b.utilization, b.alertAfter,
+		maxD(b.alertAfter/12, 10*time.Minute), b.exhaustAfter,
+	)
 }
 
-const float64EqualityThreshold = 0.005
+func newBurstAlert(b *BurstCPU, carry float64) []Alerter {
+	// This is the equation that must be satisfied
+	// - accured credits cannot exceed maxCredits
+	// - When available credits will be less than the consumed credits based on
+	// utilisation, it will breach.
+	// min(maxCredits, carry + (creditRate * n)) <= (utilization/100) * vCPUs * n
 
-func almostEqual(a, b float64) bool {
-	return math.Abs(a-b) <= float64EqualityThreshold
-}
-
-func newBurstAlert(b *BurstCPU, name string, utilization float64) Alerter {
-	carry := b.Capacity.MaxCredits - (24 * 60 * (b.Utilisation / 100.0) * b.Capacity.VCPUs)
 	nMax := 24.0
-	// (b.Capacity.MaxCredits - math.Max(carry, 0.0)) / b.Capacity.CreditRate
-	nMin := math.Max(carry, 0.0) / (b.Capacity.VCPUs - (b.Capacity.CreditRate / 60))
+	nMin := math.Max(carry, 0.0) /
+		(b.Capacity.VCPUs - (b.Capacity.CreditRate / 60))
 
+	// baseLine CPU utilization for this instance type at which rate of fill
+	// = rate of depletion.
 	baseline := (b.Capacity.CreditRate * 100.0 / float64(b.Capacity.VCPUs)) / 60
 
 	var cur float64
+	var alerts []Alerter
+
+	// Since a CPU that would need more than 100, will only register as 100.
+	// It's safe to assume that someone consuming ~ 100, can consume more aswell
 	for i := nMin; i <= nMax*60.0; i += 5 {
-		u := ((carry + ((b.Capacity.CreditRate / 60) * i)) / (i * b.Capacity.VCPUs)) * 100
+		u := ((carry + ((b.Capacity.CreditRate / 60) * i)) /
+			(i * b.Capacity.VCPUs)) *
+			100
+
 		if math.IsNaN(u) {
 			continue
 		}
@@ -123,58 +114,37 @@ func newBurstAlert(b *BurstCPU, name string, utilization float64) Alerter {
 			break
 		}
 
-		if !almostEqual(u, 100) && !almostEqual(u, baseline*1.2) && !almostEqual(u, baseline*2) {
+		ttl := time.Duration(int(i) * int(time.Minute))
+		if almostEqual(u, 100) {
+			alerts = append(alerts, &burstAlert{
+				utilization:  u,
+				exhaustAfter: ttl,
+				alertAfter:   minD(ttl/2, time.Duration(1*time.Minute)),
+			})
 			continue
 		}
 
-		cur = u
-		log.Println("utilization", u, "after minutes", i)
+		if !almostEqual(u, baseline*1.2) &&
+			!almostEqual(u, baseline*2) {
+			continue
+		}
+
+		alerts = append(alerts, &burstAlert{
+			utilization:  u,
+			exhaustAfter: ttl,
+			alertAfter:   minD(ttl/2, time.Duration(60*time.Minute)),
+		})
 	}
 
-	return &burstAlert{}
+	return alerts
 }
 
 func BurstCalculator(b *BurstCPU) []Alerter {
-	// Types of CPU burst alerts
-	out := make([]Alerter, 2)
+	// At the start of this minute, for the last 24 hours credits were accured.
+	// but based on average consumption there were depletion too. Net sum is the
+	// carry. This is only approximate. Since
+	carry := b.Capacity.MaxCredits -
+		(24 * 60 * (b.Utilisation / 100.0) * b.Capacity.VCPUs)
 
-	// net-0 baseline per vcpu
-	baseline := (b.Capacity.CreditRate * 100.0 / float64(b.Capacity.VCPUs)) / 60
-
-	// A good starting point for a fast-burn threshold policy is 10x the
-	// baseline with a short lookback period.
-	// fastUtilization := math.Min(baseline*2, 100.0)
-
-	// A good starting point for a slow-burn threshold is 2x the baseline with
-	// a long lookback period.
-	slowUtilization := math.Min(baseline*1.2, 100.0)
-
-	// Slow-burn alert, which warns you of a rate of consumption that, if not
-	// altered, exhausts your error budget before the end of the compliance
-	// period. This type of condition is less urgent than a fast-burn
-	// condition. "We are slightly exceeding where we'd like to be at this
-	// point in the month, but we aren't in big trouble yet."
-	// For a slow-burn alert, use a longer lookback period to smooth out
-	// variations in shorter-term consumption.
-	// The threshold you alert on in a slow-burn alert is higher than the ideal
-	// performance for the lookback period, but not significantly higher. A
-	// policy based on a shorter lookback period with high threshold might
-	// generate too many alerts, even if the longer-term consumption levels
-	// out. But if the consumption stays even a little too high for a longer
-	// period, it eventually consumes all of your error budget.
-	out[0] = newBurstAlert(b, "slow", slowUtilization)
-
-	// When setting up alerting policies to monitor your error budget, it's a
-	// good idea to set up two related alerting policies:
-	// Fast-burn alert, which warns you of a sudden, large change in
-	// consumption that, if uncorrected, will exhaust your error budget very
-	// soon. "At this rate, we'll burn through the whole month's error budget
-	// in two days!"
-	// For a fast-burn alert, use a shorter lookback period so you are notified
-	// quickly if a potentially disastrous condition has emerged and persisted,
-	// even briefly. If it is truly disastrous, you don't want to wait long to
-	// notice it.
-	// out[1] = newBurstAlert(b, "fast", fastUtilization)
-
-	return out
+	return newBurstAlert(b, carry)
 }

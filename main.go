@@ -6,6 +6,8 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
+var Version = "0.0.2"
+
 const errorMessage = `
 	If this service reported %.6f errors for a duration of %s
 	SLO (for the entire duration) will be defeated within %s
@@ -19,6 +21,7 @@ const errorMessage = `
 
 func main() {
 	app := kingpin.New("slo", "Last9 SLO toolkit")
+	app = app.Version(Version)
 	suggestCommand(app)
 	burstCPUCommand(app)
 	kingpin.MustParse(app.Parse(os.Args[1:]))
