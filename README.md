@@ -4,6 +4,11 @@ SLOs, Error windows and alerts are complicated. Here's an attempt to make it eas
 SLO, burn_rate, error_rate, budget_spend are convoluted terms that can throw one off.
 Even the SRE workbook by Google can leave you with a lot of open questions.
 
+# Update 0.0.2
+
+Burst CPUs have the same challenge as Service level objectives. They keep replenishing with time and then deplete with consumption.
+It's a challenge to know what the right alert strategy should be.
+
 # Goal
 
 The goal of this command (has an importable lib too) is to factor in some "bare minimum" input to
@@ -40,4 +45,17 @@ slo-computer: error:
 	- SLO is too aggressive and can be lowerd (business decision)
 	- Combine multiple services into one single service (teamwide)
 , try --help
+```
+
+**Q: What alerts should I set for my burst CPU***
+
+```bash
+➜  slo-computer git:(master) ✗ ./slo-computer cpu-suggest --instance=t3a.xlarge --utilization=15
+
+	Alert if 100.00 % consumption sustains for 1m0s AND recent 10m0s.
+	At this rate, burst credits will deplete after 10h0m0s
+	
+
+	Alert if 80.00 % consumption sustains for 1h0m0s AND recent 10m0s.
+	At this rate, burst credits will deplete after 15h0m0s
 ```
