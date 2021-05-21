@@ -11,6 +11,26 @@ It's a challenge to know what the right alert strategy should be.
 
 # Goal
 
+```bash
+usage: slo [<flags>] <command> [<args> ...]
+
+Last9 SLO toolkit
+
+Flags:
+  --help     Show context-sensitive help (also try --help-long and --help-man).
+  --version  Show application version.
+
+Commands:
+  help [<command>...]
+    Show help.
+
+  suggest --throughput=THROUGHPUT --slo=SLO --duration=DURATION
+    suggest alerts based on service throughput and SLO duration
+
+  cpu-suggest --instance=INSTANCE --utilization=UTILIZATION
+    suggest alerts based on CPU utilization and Instance type
+```
+
 The goal of this command (has an importable lib too) is to factor in some "bare minimum" input to
 - Is this a Low traffic service in which case it makes little sense to use an SLO approach
 - Compute the *actual* alert values and condition to set alerts on

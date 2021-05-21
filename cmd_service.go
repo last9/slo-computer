@@ -43,7 +43,10 @@ func (c *suggestCmd) run(ctx *kingpin.ParseContext) error {
 
 func suggestCommand(app *kingpin.Application) {
 	c := &suggestCmd{}
-	sg := app.Command("suggest", "suggest alerts based on the input").Action(c.run)
+	sg := app.Command(
+		"suggest",
+		"suggest alerts based on service throughput and SLO duration",
+	).Action(c.run)
 
 	sg.Flag("throughput", "Throughput for this service").Required().FloatVar(&c.throughput)
 	sg.Flag("slo", "Desired SLO for this service").Required().FloatVar(&c.sloDesire)

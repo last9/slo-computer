@@ -42,7 +42,7 @@ func (c *burstCPUCmd) suggest(ctx *kingpin.ParseContext) error {
 func burstCPUCommand(app *kingpin.Application) {
 	c := &burstCPUCmd{}
 	sg := app.Command(
-		"cpu-suggest", "compute permissible burst interval for an instance",
+		"cpu-suggest", "suggest alerts based on CPU utilization and Instance type",
 	).Action(c.suggest)
 
 	sg.Flag("instance", "Instance type").Required().EnumVar(
