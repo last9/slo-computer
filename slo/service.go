@@ -94,7 +94,7 @@ func (a *AlertWindow) String() string {
 
 func NewAlertWindow(
 	slo *SLO, name string, errorRate float64, window time.Duration,
-) Alerter {
+) AlertWindow {
 	a := AlertWindow{
 		Name: name, ErrorRate: errorRate,
 		ShortWindow: maxD(window/12, 2*time.Minute),
@@ -104,12 +104,12 @@ func NewAlertWindow(
 	a.BurnRate = slo.burnRate(errorRate)
 	a.BudgetSpent = slo.budgetSpent(errorRate, window)
 	a.TimeToExhaust = slo.timeToExhaust(errorRate)
-	return &a
+	return a
 }
 
-func AlertCalculator(s *SLO) []Alerter {
+func AlertCalculator(s *SLO) []AlertWindow {
 	// Types of error-budget alerts
-	out := make([]Alerter, 2)
+	out := make([]AlertWindow, 2)
 
 	// A good starting point for a fast-burn threshold policy is 10x the
 	// baseline with a short (1- or 2-hour) lookback period.
