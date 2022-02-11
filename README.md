@@ -1,8 +1,12 @@
 # slo-computer
-SLOs, Error windows and alerts are complicated. Here's an attempt to make it easy
+SLOs, Error windows and alerts are complicated. Here's an attempt to make it easy.
 
 SLO, burn_rate, error_rate, budget_spend are convoluted terms that can throw one off.
 Even the SRE workbook by Google can leave you with a lot of open questions.
+
+The concept of SLOs and SLIs has existed for a long time now, but we continue to be amazed by how widely misunderstood this topic is (and how easy it can make your lives if used well).
+
+We are building a sandbox for our DevOps and SRE community - SLO computer - a product that makes setting and monitoring SLOs for all your services intuitively seamless and blazingly fast. 
 
 # Update 0.0.2
 
