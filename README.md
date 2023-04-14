@@ -84,7 +84,7 @@ slo-computer: error:
 , try --help
 ```
 
-**Q: What alerts should I set for my burst CPU\**
+**Q: What alerts should I set for my burst CPU**
 
 ```bash
 ✗ ./slo-computer cpu-suggest --instance=t3a.xlarge --utilization=15
