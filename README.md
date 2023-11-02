@@ -1,5 +1,10 @@
 # slo-computer
 
+> [!Note]
+> Around two years ago @last9 started advocating using Service Level Objectives.
+> One of the biggest challenges was the lack of practical algorithms behind Burn Rate and alerting. This was our first attempt at it.
+> If you would like us to release these algorithms, go ahead and help us reach 250 stars ⭐️. 
+
 SLOs, Error windows and alerts are complicated. Here's an attempt to make it
 easy.
 
@@ -14,13 +19,7 @@ We are building a sandbox for our DevOps and SRE community - SLO computer - a
 product that makes setting and monitoring SLOs for all your services intuitively
 seamless and blazingly fast.
 
-# Update 0.0.2
-
-Burst CPUs have the same challenge as Service level objectives. They keep
-replenishing with time and then deplete with consumption. It's a challenge to
-know what the right alert strategy should be.
-
-# Goal
+### Usage
 
 ```bash
 usage: slo [<flags>] <command> [<args> ...]
@@ -49,7 +48,7 @@ minimum" input to
   SLO approach
 - Compute the _actual_ alert values and condition to set alerts on
 
-## Examples
+### Examples
 
 **Q: What alerts should I set for my service to achieve 99.9 % availability over
 30 days**
