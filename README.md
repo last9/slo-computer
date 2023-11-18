@@ -1,3 +1,5 @@
+<a href="https://last9.io"><img src="https://last9.github.io/assets/last9-github-badge.svg" align="right" /></a>
+
 # slo-computer
 
 > [!Note]
