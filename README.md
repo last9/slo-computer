@@ -23,8 +23,24 @@ This toolkit helps SREs and DevOps engineers:
 ### Prerequisites
 - Go 1.16 or later
 
-### Building from Source
+### Installation Options
 
+#### Using Go
+```bash
+# Install directly using Go
+go install github.com/last9/slo-computer@latest
+```
+
+#### Using Docker
+```bash
+# Pull the Docker image
+docker pull last9/slo-computer:latest
+
+# Run using Docker
+docker run last9/slo-computer:latest --help
+```
+
+#### Building from Source
 ```bash
 # Clone the repository
 git clone https://github.com/last9/slo-computer.git
@@ -63,8 +79,10 @@ usage: slo [<flags>] <command> [<args> ...]
 Last9 SLO toolkit
 
 Flags:
-  --help     Show context-sensitive help (also try --help-long and --help-man).
-  --version  Show application version.
+  --help                Show context-sensitive help (also try --help-long and --help-man).
+  --version             Show application version.
+  --config=CONFIG       Path to configuration file
+  --output=FORMAT       Output format (text, json, yaml)
 
 Commands:
   help [<command>...]
@@ -88,10 +106,89 @@ Commands:
 - `--instance`: AWS instance type (e.g., t3.micro, t3a.xlarge)
 - `--utilization`: Average CPU utilization percentage (0-100)
 
-The goal of these commands is to factor in some "bare minimum" input to:
+### Using Configuration Files
 
-- Determine if this is a low traffic service where an SLO approach makes little sense
-- Compute the _actual_ alert values and conditions to set alerts on
+You can define your services and configurations in YAML or JSON files:
+
+```yaml
+# slo-config.yaml
+services:
+  api-gateway:
+    throughput: 4200
+    slo: 99.9
+    duration: 720
+  
+  background-processor:
+    throughput: 100
+    slo: 99.5
+    duration: 168
+
+cpus:
+  web-server:
+    instance: t3a.xlarge
+    utilization: 15
+```
+
+Then use it with:
+
+```bash
+# For a specific service
+./slo-computer suggest --config=slo-config.yaml --service=api-gateway
+
+# For a specific CPU
+./slo-computer cpu-suggest --config=slo-config.yaml --service=web-server
+```
+
+### Output Formats
+
+SLO Computer supports multiple output formats:
+
+```bash
+# Default text output
+./slo-computer suggest --throughput=4200 --slo=99.9 --duration=720
+
+# JSON output
+./slo-computer suggest --throughput=4200 --slo=99.9 --duration=720 --output=json
+
+# YAML output
+./slo-computer suggest --throughput=4200 --slo=99.9 --duration=720 --output=yaml
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+You can use SLO Computer in your GitHub Actions workflows:
+
+```yaml
+name: SLO Analysis
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Monday
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  analyze-slos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run SLO Computer
+        uses: last9/slo-computer-action@v1
+        with:
+          command: suggest
+          config-file: .github/slo-config.yaml
+          service-name: api-gateway
+          output-format: json
+```
+
+### Docker Integration
+
+```bash
+# Mount your config file and run
+docker run -v $(pwd)/slo-config.yaml:/config.yaml last9/slo-computer:latest suggest --config=/config.yaml --service=api-gateway
+```
 
 ## Examples
 
@@ -113,6 +210,28 @@ and leaves 360h0m0s before the SLO is defeated.
 Alert if error_rate > 0.010 for last [1h0m0s] and also last [5m0s]
 This alert will trigger once 1.39% of error budget is consumed,
 and leaves 72h0m0s before the SLO is defeated.
+```
+
+JSON Output:
+```json
+[
+  {
+    "type": "slow_burn",
+    "error_rate": 0.002,
+    "long_window": "24h0m0s",
+    "short_window": "2h0m0s",
+    "budget_consumed": 0.0667,
+    "time_remaining": "360h0m0s"
+  },
+  {
+    "type": "fast_burn",
+    "error_rate": 0.01,
+    "long_window": "1h0m0s",
+    "short_window": "5m0s",
+    "budget_consumed": 0.0139,
+    "time_remaining": "72h0m0s"
+  }
+]
 ```
 
 **Q: What about a low-traffic service?**
