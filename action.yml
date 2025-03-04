@@ -1,0 +1,51 @@
+name: 'SLO Computer'
+description: 'Calculate SLO-based alert thresholds for services and AWS burstable instances'
+author: 'Last9'
+inputs:
+  command:
+    description: 'Command to run (suggest or cpu-suggest)'
+    required: true
+  config-file:
+    description: 'Path to configuration file'
+    required: false
+  service-name:
+    description: 'Service name to use from config file'
+    required: false
+  throughput:
+    description: 'Service throughput (requests per minute)'
+    required: false
+  slo:
+    description: 'Desired SLO percentage'
+    required: false
+  duration:
+    description: 'SLO duration in hours'
+    required: false
+  instance:
+    description: 'AWS instance type'
+    required: false
+  utilization:
+    description: 'CPU utilization percentage'
+    required: false
+  output-format:
+    description: 'Output format (text, json, yaml)'
+    required: false
+    default: 'json'
+outputs:
+  result:
+    description: 'SLO calculation result'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.command }}
+    - ${{ inputs.config-file != '' && format('--config={0}', inputs.config-file) || '' }}
+    - ${{ inputs.service-name != '' && format('--service={0}', inputs.service-name) || '' }}
+    - ${{ inputs.throughput != '' && format('--throughput={0}', inputs.throughput) || '' }}
+    - ${{ inputs.slo != '' && format('--slo={0}', inputs.slo) || '' }}
+    - ${{ inputs.duration != '' && format('--duration={0}', inputs.duration) || '' }}
+    - ${{ inputs.instance != '' && format('--instance={0}', inputs.instance) || '' }}
+    - ${{ inputs.utilization != '' && format('--utilization={0}', inputs.utilization) || '' }}
+    - ${{ format('--output={0}', inputs.output-format) }}
+branding:
+  icon: 'alert-circle'
+  color: 'green' 
